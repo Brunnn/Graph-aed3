@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+    body,html{
+        position: relative;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .container{
+        display: block;
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+    .content{
+        position: relative;
+        height: 25px;
+        width: 100%;
+        display: flex;
+        padding-top: 8px;
+        background-color: #f3f3f3;
+        flex-flow: row nowrap;
+    }
+    #c1{
+        flex: 0 0 auto;
+        display: flex;
+        flex-flow: row nowrap;
+        padding-left: 10px;
+        margin-right: 30px;
+    }
+    #c2{
+        flex: 0 0 auto;
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: flex-end;
+        padding-right: 10px;
+    }
+  
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <div id="c1">
+                <input type="text" placeholder="Nó Origem" id="source">
+                <input type="text" placeholder="Nó Destino" id="dest">
+                <input type="text" placeholder="Peso da Aresta" id="wheight">
+                <button type="button" id="addEdge">Adicionar Aresta</button>
+                <button type="button" id="shortestPath">Dijkstra</button>
+            </div>
+            <div id="c2">
+                <input type="text" placeholder="Nro do Nó" id="node">
+                <button type="button" id="addVertex">Adicionar Nó</button>
+                <button type="button" id="removeVertex">Remover Nó</button>
+                <button id="redrawGraph" type="button">Redesenhar grafo</button>
+            </div>
+        </div>
+        <canvas id="myCanvas" width="700" height="700"></canvas>
+    </div>
+<script src="./bundle.js"></script>
+
+<script>
+    const graph = new Graph(2);
+    var c = document.getElementById("myCanvas");
+    c.width = c.clientWidth;
+    c.height = c.clientHeight; - 30;
+
+
+    var ctx = c.getContext("2d");
+
+    function drawLine(source, dest, text) {
+
+        var fromx, fromy, tox, toy;
+        fromx = circles[source].x
+        fromy = circles[source].y
+        tox = circles[dest].x;
+        toy = circles[dest].y;
+
+        var factorX = factorY = 0;
+        if (tox > fromx){
+
+            factorX += 10
+        }
+        else{
+
+            factorX -= 10
+        } 
+        
+        if (toy > fromy){
+
+            factorY += 6;
+        }
+        else{
+
+            factorY -= 6;
+        }
+
+
+        tox = tox + (-1 * factorX)
+        fromx = fromx + factorX;
+
+        toy = toy + (-1 * factorY)
+        froy = fromy + factorY;
+        var headlen = 10; // length of head in pixels
+
+
+
+        var dx = tox - fromx;
+        var dy = toy - fromy;
+        var angle = Math.atan2(dy, dx);
+
+
+        ctx.beginPath();
+        ctx.moveTo(fromx, fromy);
+        ctx.lineTo(tox, toy);
+        // ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+        // ctx.moveTo(tox, toy);
+        // ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.font = '12pt Arial';
+        ctx.fillStyle = 'black';
+        
+        ctx.textAlign = 'center';
+       
+        ctx.fillText(text, Math.abs((tox + fromx) / 2) + 1, Math.abs((toy + fromy) / 2) - 2);
+        ctx.stroke();
+    }
+
+    function drawCircle(x, y, text){
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, 2 * Math.PI);
+
+        ctx.font = '8pt Arial';
+        ctx.fillStyle = 'black';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, x, y+3);
+        ctx.stroke();
+    }
+
+
+    var inputSource = document.querySelector("#source")
+    var inputDest = document.querySelector("#dest")
+    var inputWheight = document.querySelector("#wheight")
+    var inputVertex = document.querySelector("#node")
+
+    var buttonAddVertex = document.querySelector("#addVertex")
+    var buttonAddEdge = document.querySelector("#addEdge")
+    var buttonRemoveVertex = document.querySelector("#removeVertex")
+    var buttonRedrawGraph = document.querySelector("#redrawGraph")
+    var buttonShortestPath = document.querySelector("#shortestPath")
+
+    
+    function generateRandomCoords(circles){
+        var Y, X;
+        var valid = false 
+        while (!valid){
+            valid = true;
+            X = (Math.random() * c.clientWidth + 50) % (c.clientWidth - 300);
+            Y = (Math.random() * c.clientHeight + 50) % (c.clientHeight - 300);;
+            circles.forEach(drawnCircle => {
+                if (X >= drawCircle.x - 20 && X <= drawCircle.x + 20)
+                    valid = false
+                if (Y >= drawCircle.y - 20 && Y <= drawCircle.y + 20)
+                    valid = false
+            })
+        }
+        return { x: X, y: Y};
+    }
+
+    
+    var circles = [];
+    function drawEdges(){
+        var list = graph.getAdjacencyList();
+        var aux = [];
+        Object.keys(list).forEach(itemKey => {
+           list[itemKey].forEach(edge => {
+               if (!aux.find(item => item.o == edge.destination && item.d == itemKey)){
+
+                   drawLine(itemKey, edge.destination, edge.wheight);
+                   aux.push({d: edge.destination, o: itemKey});
+                }
+           });
+        })
+    }
+    function drawVertex(itemKey){
+        var coord = generateRandomCoords(circles);
+           
+        drawCircle(coord.x, coord.y, itemKey)
+
+        circles[""+itemKey] = {key: itemKey, x: coord.x, y: coord.y}
+    }
+
+    function redrawGraph(){
+        ctx.clearRect(0, 0, c.width, c.height);
+        var list = graph.getAdjacencyList();
+        console.log(list);
+        
+        circles = [];
+        Object.keys(list).forEach(itemKey => {
+            drawVertex(itemKey)
+        })
+        drawEdges();
+    }
+
+    buttonAddEdge.addEventListener("click" , (e) => {
+        var source = inputSource.value;
+        var dest = inputDest.value;
+        var wheight = inputWheight.value;
+        inputSource.value = inputDest.value = inputWheight.value = ""
+
+        graph.addEdge(source, dest, wheight);
+
+        drawEdges();
+    })
+
+    buttonAddVertex.addEventListener("click" , (e) => {
+        var vertex = parseInt(inputVertex.value);
+        inputVertex.value = "";
+        circles.find((item) => console.log(item))
+        var inDrawnCircles = false;
+        Object.keys(circles).forEach(key => {
+            
+            if (key == vertex){
+                inDrawnCircles = true
+                return;
+            }
+        
+        })
+
+        if (!isNaN(vertex) && !inDrawnCircles){
+            console.log(2);
+            graph.addVertex(vertex)
+            drawVertex(vertex)
+        }
+    })
+
+    buttonRemoveVertex.addEventListener("click" , (e) => {
+        var vertex = inputVertex.value;
+        inputVertex.value = "";
+        graph.removeVertex(vertex)
+        redrawGraph()
+    })
+
+    buttonRedrawGraph.addEventListener("click", () => {
+        redrawGraph();
+    })
+
+    buttonShortestPath.addEventListener("click", () => {
+        var source = inputSource.value;
+        var dest = inputDest.value;
+        var wheight = inputWheight.value;
+        inputSource.value = inputDest.value = inputWheight.value = ""
+        var result = graph.dijkstra(source, dest);
+    
+        console.log(result);
+        alert("O caminho encontrato de "+source+ " para "+dest+" é Peso: "+result.total+ " Caminho: ["+result.nodeSequence.join(",")+"]")
+    })
+</script>
+</body>
+
+</html>
